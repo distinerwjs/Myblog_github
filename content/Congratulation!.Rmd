@@ -1,0 +1,14 @@
+---
+title: 'Congratulation'
+author: Js WANG
+date: '2018-10-20'
+slug: Congratulation!
+categories:
+  - succeed posted
+tags: []
+---
+
+终于第一次post成功！
+
+见证自己的一次静态博客！
+

@@ -22,5 +22,15 @@ This is my first bolg!
 nice day!</description>
     </item>
     
+    <item>
+      <title>Succeed</title>
+      <link>/2018/10/20/succeed/</link>
+      <pubDate>Sat, 20 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/2018/10/20/succeed/</guid>
+      <description>终于第一次post成功！
+见证自己的一次静态博客！</description>
+    </item>
+    
   </channel>
 </rss>

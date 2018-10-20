@@ -1,0 +1,15 @@
+---
+title: ''
+author: Js WANG
+date: '2018-10-20'
+slug: Congratulation the first post!
+categories:
+  - succeed posted
+tags: []
+---
+
+折腾了无数次，终于成功在这里post了第一个帖子。
+
+立帖为证。
+
+希望以后常来！

@@ -3,7 +3,22 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>/congratulation-the-first-post/</loc>
+    <lastmod>2018-10-20T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/congratulation/</loc>
+    <lastmod>2018-10-20T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
     <loc>/2018/10/20/hello/</loc>
+    <lastmod>2018-10-20T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/2018/10/20/succeed/</loc>
     <lastmod>2018-10-20T00:00:00+00:00</lastmod>
   </url>
   
@@ -31,6 +46,12 @@
   
   <url>
     <loc>/post/</loc>
+    <lastmod>2018-10-20T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>/categories/succeed-posted/</loc>
     <lastmod>2018-10-20T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>

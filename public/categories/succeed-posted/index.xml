@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>A Hugo website</title>
-    <link>/</link>
-    <description>Recent content on A Hugo website</description>
+    <title>Succeed Posted on A Hugo website</title>
+    <link>/categories/succeed-posted/</link>
+    <description>Recent content in Succeed Posted on A Hugo website</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Sat, 20 Oct 2018 00:00:00 +0000</lastBuildDate>
     
-	<atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="/categories/succeed-posted/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -33,17 +33,6 @@
     </item>
     
     <item>
-      <title>Say hello to github</title>
-      <link>/2018/10/20/hello/</link>
-      <pubDate>Sat, 20 Oct 2018 00:00:00 +0000</pubDate>
-      
-      <guid>/2018/10/20/hello/</guid>
-      <description>Say hello to world!
-This is my first bolg!
-nice day!</description>
-    </item>
-    
-    <item>
       <title>Succeed</title>
       <link>/2018/10/20/succeed/</link>
       <pubDate>Sat, 20 Oct 2018 00:00:00 +0000</pubDate>
@@ -51,15 +40,6 @@ nice day!</description>
       <guid>/2018/10/20/succeed/</guid>
       <description>终于第一次post成功！
 见证自己的一次静态博客！</description>
-    </item>
-    
-    <item>
-      <title>About</title>
-      <link>/about/</link>
-      <pubDate>Thu, 05 May 2016 21:48:51 -0700</pubDate>
-      
-      <guid>/about/</guid>
-      <description>This is a &amp;ldquo;hello world&amp;rdquo; example website for the blogdown package. The theme was forked from @jrutheiser/hugo-lithium-theme and modified by Yihui Xie.</description>
     </item>
     
   </channel>
