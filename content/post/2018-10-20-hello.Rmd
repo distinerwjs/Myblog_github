@@ -1,0 +1,15 @@
+---
+title: Say hello to github
+author: Js Wang
+date: '2018-10-20'
+slug: hello
+categories:
+  - first
+tags: []
+---
+
+Say hello to world!
+
+This is my first bolg!
+
+nice day!

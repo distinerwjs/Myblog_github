@@ -1,0 +1,810 @@
+---
+title: "Serum carcinoembryonic antigen : a potential marker for evaluating tumor metastasis in patients of newly diagnosed lung cancer"
+author: 
+  - name: Jiasi WANG
+    affiliation: Central Hospital of Dazhou City
+    email: oneclubw@126.com
+    corresponding: oneclubw@126.com
+  - name: Tingjie WANG
+    affiliation: Central Hospital of Dazhou City
+  - name: Liangli SUN
+    affiliation: Central Hospital of Dazhou City
+address:
+  - code: Central Hospital of Dazhou City
+    address: Clinical Lab, No. 56th, Nanyue Temple street, Tongchuan District, Dazhou, Sichuan Province, 635000
+  - code: Central Hospital of Dazhou City
+    address: Department of Respiratory Medicine, No. 56th, Nanyue Temple street, Tongchuan District, Dazhou, Sichuan Province, 635000
+  - code: Central Hospital of Dazhou City
+    address: Department of Internal medicine, No. 56th, Nanyue Temple street, Tongchuan District, Dazhou, Sichuan Province, 635000
+date: "`r paste0('CTIME??2018-03-26.','MTIME??',Sys.Date(),seq = '')`"
+abstract: |
+  **Abstract**
+  
+  **Background:**Tumor metastasis of lung cancer is one of the development ways of this disease, and it is important to evaluate the prognosis of patients with lung cancer metastasis. In this paper, the relationship between serum CEA and tumor metastasis of lung cancer was revealed by reviewing patient data for 2016 years.
+  
+  **Subjects and Methods:**In this paper, We retrospectively analyzed the relationship between serum Carcinoembryonic antigen (CEA) distribution and tumor metastasis in these patients, as well as the relationship between histology, tumor size and tumor metastasis, as well as the relationship between CEA distributions and the number and range of tumor metastasis sites.
+  
+  **Results:**The CEA level in patients with lung cancer was statistically correlated with tumor metastasis(p=8.9110675 ??  10^-11^ ), and the number of tumor metastasis sites was statistically correlated with serum CEA level(p=3.021658710 ??  10^-7^ ); when the CEA level exceeded 5.0ng/ml, there was a greater likelihood of distant metastasis if the tumor metastasis existed. On the contrary, we did not find statistically significant correlation between tumor size and metastasis. Although there was no statistically significant correlation between Non-small cell lung cancer and tumor metastasis, but adenocarcinoma was more likely to be metastatic than squamous cell and small cell lung cancer.
+  
+  **Conclusions:**Serum CEA levels will help to assess the basic conditions of tumor metastasis in patients with lung cancer, such as the presence of tumor metastasis and the presence of distant metastasis, and to assist in assessing the presence of multiple metastatic tumors. At the same time, the serum CEA level can help clinicians to differentiate and diagnose the presence of adenocarcinoma to some extent. If the patient has a serum CEA of more than 5.0, it may be suggested that there would be distant metastasis, and may merge multiple metastases.
+  
+  **_Key words_:**Carcinoembryonic antigen;Lung cancer;Non-small cell lung cancer (NSCLC);small cell lung cancer (SCLC);metastasis;adenocarcinoma
+
+output: 
+  word_document:
+#    toc: TRUE
+    highlight: tango
+    reference_docx: word-style-reference-02.docx
+bibliography: RepResRef1.bib
+csl: bmc-cancer.csl
+#always_allow_html: yes
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+setwd('C:/WorkFlow/CEAwithneoplasmmetastasis')
+library(dplyr)
+library(tidyr)
+library(magrittr)
+library(stringr)
+library(ggplot2)
+library(DiagrammeR)
+fig_number = captioner::captioner(prefix = "Fig ")
+table_number = captioner::captioner(prefix = "Table ")
+kCeaResult = read.csv('CTDB201804_1.csv', header = TRUE, stringsAsFactors = FALSE)
+kCeaResult = kCeaResult%>%
+  filter(!is.na(CEA))%>%
+  filter(nchar(Group) > 0)%>%
+  mutate(Metastasis = ifelse(nchar(Metastatic.Sites) > 0, 'Metastatic', 'Unmetastatic'))
+
+kCeaResult = kCeaResult%>%
+  mutate(CEA = as.numeric(CEA))%>%
+  mutate(Cea.Level = ifelse(CEA <= 5.0, '<=5.0', '>5.0'))%>%
+  mutate(Group.LC = Group)%>%
+  mutate(Group.LC2 = ifelse(Group == 'Small-cell Lung cancer',
+                            'SCLC',
+                            ifelse(Group == 'Lung cancer(Unclassified)', 
+                                   'LC(Unclassified)', 
+                                   'NSCLC')))%>%
+  mutate(CEAinterM = paste0('CEA',Cea.Level,'&',Metastasis))%>%
+  mutate(tumor.size.classification = ifelse(tumor.size2 <= 3, '<=3',
+                                            ifelse(tumor.size2 <= 5, '3-5',
+                                                   ifelse(tumor.size2 <= 7, '5-7','>7'))))
+
+MetastasisSiteNum =  kCeaResult%>%
+  cbind(as.data.frame(str_split(kCeaResult$Metastatic.Sites, ' ', simplify = TRUE)))%>%
+  filter(nchar(Group) > 0)%>%
+  select(Name, contains('V'))%>%
+  select(-Cea.Level)%>%
+  gather(Metastatic.site, value, -Name)%>%
+  filter(nchar(value) > 0)%>%
+  select(-contains('site'))%>%
+  group_by(Name)%>%
+  summarise(n=n())
+
+MetastasisSite = kCeaResult%>%
+  cbind(as.data.frame(str_split(kCeaResult$Metastatic.Sites, ' ', simplify = TRUE)))%>%
+  filter(nchar(Group) > 0)%>%
+  select(Name, contains('V'))%>%
+  select(-Cea.Level)%>%
+  gather(Metastatic.site, value, -Name)%>%
+  filter(nchar(value) > 0)%>%
+  select(-contains('site'))%>%
+  rename(MetastasisSite.single = value)%>%
+  mutate(lymph.node.metastasis = ifelse(str_detect(MetastasisSite.single, '?ܰͽ?'), 
+                                        'Positive', 'Negative'))%>%
+  mutate(mediastinal.lymph.node.metastasis = ifelse(str_detect(MetastasisSite.single, '????'), 
+                                                    'Positive', 'Negative'))%>%
+  mutate(regional.or.distant = ifelse(str_detect(MetastasisSite.single, '????|????'), 
+                                      'regional','distant'))
+
+
+kCeaResult = kCeaResult%>%
+  full_join(MetastasisSiteNum, by = 'Name')%>%
+  rename(SitesNum = n)%>%
+  mutate(SitesNum = ifelse(is.na(SitesNum), 0, SitesNum))%>%
+  mutate(lymph.node.metastasis = ifelse(str_detect(Metastatic.Sites, '?ܰͽ?'), 'Positive', 'Negative'))%>%
+  mutate(mediastinal.lymph.node.metastasis = ifelse(str_detect(Metastatic.Sites, '????'), 'Positive', 'Negative'))%>%
+  mutate(regional.Metastasis = ifelse(str_detect(Metastatic.Sites, '????|????'), 'regional',NA))%>%
+  mutate(distant.Metastasis = ifelse(nchar(str_trim(str_replace_all(kCeaResult$Metastatic.Sites,'????|?????ܰͽ?','')))>0, 
+                                     'distant', NA))%>%
+  mutate(Pattern.Metastasis = ifelse(!is.na(regional.Metastasis) & !is.na(distant.Metastasis),
+                                     str_c(regional.Metastasis,distant.Metastasis,sep='+'), 
+                                     ifelse(!is.na(regional.Metastasis) & is.na(distant.Metastasis), 
+                                            regional.Metastasis, ifelse(is.na(regional.Metastasis) & is.na(distant.Metastasis), 
+                                                                        NA, 
+                                                                        distant.Metastasis))))%>%
+  mutate(SitesNumType = ifelse(SitesNum <=1, as.character(SitesNum), '>=2'))
+
+samplenNum = kCeaResult%>%group_by(Source.of.histological.specimens)%>%summarise(n=n())%>%mutate(specimens.Num = paste0(n,' pts\\n',Source.of.histological.specimens))
+samplenNum2 = kCeaResult%>%
+  group_by(Group.LC,Source.of.histological.specimens)%>%
+  summarise(n=n())%>%filter(Group.LC == 'Lung cancer(Unclassified)')%>%
+  full_join(kCeaResult%>%
+              group_by(Source.of.histological.specimens)%>%
+              summarise(sum=n()), by = 'Source.of.histological.specimens')%>%
+  mutate(acture = sum-n)%>%ungroup()%>%
+  select(Source.of.histological.specimens, acture)%>%
+  mutate(specimens.Num2 = paste0(acture,' pts\\n','with histological subtype\\n',Source.of.histological.specimens))
+
+
+####===========================================about metastasis
+
+distributionMetas = kCeaResult%>%
+  group_by(Metastasis)%>%
+  summarise(n=n())%>%
+  spread(Metastasis,n)%>%
+  mutate(lungcancer = sum(Metastatic+Unmetastatic))%>%
+  mutate(Group.LC = ' ')%>%
+  rename(characters = Group.LC)
+
+distributionSex = kCeaResult%>%
+  group_by(Metastasis,Sex)%>%
+  summarise(n=n())%>%ungroup()%>%
+  arrange(Metastasis)%>%
+  group_by(Metastasis)%>%
+  mutate(prop.sex = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+  select(-n)%>%
+  spread(Metastasis,prop.sex)%>%
+  full_join(kCeaResult%>%group_by(Sex)%>%
+              summarise(n=n())%>%mutate(prop.sex = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+              rename(lungcancer = prop.sex)%>%select(-n),by = 'Sex')%>%
+  rename(characters = Sex)
+
+distributionSexhead = distributionSex[c(1),]
+distributionSexhead[c(1),] = c('gender',' ',' ',' ') 
+
+
+distributionGroupLC = kCeaResult%>%
+  group_by(Metastasis,Group.LC)%>%
+  summarise(n=n())%>%ungroup()%>%
+  arrange(Metastasis)%>%
+  group_by(Metastasis)%>%
+  mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+  select(-n)%>%
+  spread(Metastasis,prop.LC)%>%
+  left_join(kCeaResult%>%
+              group_by(Group.LC)%>%
+              summarise(n=n())%>%mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+              rename(lungcancer = prop.LC)%>%select(-n),by = 'Group.LC')%>%
+  rename(characters = Group.LC)
+
+distributionGroupLChead = distributionGroupLC[c(1),]
+distributionGroupLChead[c(1),] = c('histology',' ',' ',' ')
+
+
+distribGroupLC2 = kCeaResult%>%
+  group_by(Metastasis,Group.LC2)%>%
+  summarise(n=n())%>%ungroup()%>%
+  arrange(Metastasis)%>%
+  group_by(Metastasis)%>%
+  mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+  select(-n)%>%
+  spread(Metastasis,prop.LC)%>%
+  left_join(kCeaResult%>%
+              group_by(Group.LC2)%>%
+              summarise(n=n())%>%mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+              rename(lungcancer = prop.LC)%>%select(-n),by = 'Group.LC2')%>%
+  rename(characters = Group.LC2)
+
+
+distribCEA = kCeaResult%>%
+  group_by(Metastasis,Cea.Level)%>%
+  summarise(n=n())%>%ungroup()%>%
+  arrange(Metastasis)%>%
+  group_by(Metastasis)%>%
+  mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+  select(-n)%>%
+  spread(Metastasis,prop.LC)%>%
+  left_join(kCeaResult%>%
+              group_by(Cea.Level)%>%
+              summarise(n=n())%>%mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+              rename(lungcancer = prop.LC)%>%select(-n),by = 'Cea.Level')%>%
+  rename(characters = Cea.Level)
+#  mutate(LC.overall = lungcancer,
+#         LC.with.metastasis = Metastatic,
+#         LC.without.metastasis = Unmetastatic)%>%
+#  select(-Metastatic, -Unmetastatic,-lungcancer)
+
+distribCEA1 = distribCEA[c(1),]
+distribCEA1[c(1),] = c('level of CEA', ' ',' ',' ')
+
+#=============metastasis and tumor.size
+distribsizeoftumor = kCeaResult%>%
+  group_by(Metastasis,tumor.size.classification)%>%
+  summarise(n=n())%>%ungroup()%>%
+  arrange(Metastasis)%>%
+  group_by(Metastasis)%>%
+  mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+  select(-n)%>%
+  spread(Metastasis,prop.LC)%>%
+  left_join(kCeaResult%>%
+              group_by(tumor.size.classification)%>%
+              summarise(n=n())%>%mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+              rename(lungcancer = prop.LC)%>%select(-n),by = 'tumor.size.classification')%>%
+  rename(characters = tumor.size.classification)
+
+distribsizeoftumorhead = distribsizeoftumor[c(1),]
+distribsizeoftumorhead[c(1),] = c('Size of tumor',' ',' ',' ')
+
+distri = distributionMetas%>%
+  rbind(distributionSexhead)%>%
+  rbind(distributionSex)%>%
+#  rbind(distributionMetas3)%>%
+  rbind(distributionGroupLChead)%>%
+  rbind(distributionGroupLC[c(3),])%>%
+  rbind(distribGroupLC2[c(2),])%>%
+  rbind(distributionGroupLC[c(1,5,2),])%>%
+  rbind(distribGroupLC2[c(3),])%>%
+#  rename(characters = Group.LC)%>%
+  rbind(distribCEA1)%>%
+  rbind(distribCEA)%>%
+  rbind(distribsizeoftumorhead)%>%
+  rbind(distribsizeoftumor[-c(2,5),])%>%
+  rbind(distribsizeoftumor[c(2),])%>%
+  mutate(LC.overall = lungcancer,
+         LC.with.metastasis = Metastatic,
+         LC.without.metastasis = Unmetastatic)%>%
+  select(-Metastatic, -Unmetastatic,-lungcancer)
+
+
+#distributionGroupWith[c(-1),] = c('histology',' ',' ',' ')
+#===============================================about level of CEA==================#
+ceaheader = kCeaResult%>%
+  group_by(Cea.Level)%>%
+  summarise(n=n())%>%
+  spread(Cea.Level,n)%>%
+  mutate(character = ' ')%>%
+  mutate(`CEA.level>5.0` = `>5.0`,
+         `CEA.level<=5.0` = `<=5.0`)%>%
+  select(-`<=5.0`,-`>5.0`)
+
+
+# relationship between cea and metastasis
+ceametastasis = kCeaResult%>%
+  group_by(Metastasis,Cea.Level)%>%
+  summarise(n=n())%>%
+  ungroup()%>%
+  arrange(Cea.Level)%>%
+  group_by(Cea.Level)%>%
+  mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+  select(-n)%>%
+  spread(Cea.Level, prop.LC)%>%
+  rename(character = Metastasis)%>%
+  mutate(`CEA.level>5.0` = `>5.0`,
+         `CEA.level<=5.0` = `<=5.0`)%>%
+  select(-`<=5.0`,-`>5.0`)
+
+ceametastasishead = ceametastasis[c(1),]
+ceametastasishead[c(1),] = c('Metastasis or not',' ',' ')
+
+# relationship betwen cea and histology subtype
+
+ceagrouplc = kCeaResult%>%
+#  filter(Group.LC2 !='LC(Unclassified)')%>%
+  group_by(Group.LC,Cea.Level)%>%
+  summarise(n=n())%>%ungroup()%>%
+  arrange(Cea.Level)%>%group_by(Cea.Level)%>%
+  mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+  select(-n)%>%
+  spread(Cea.Level, prop.LC)%>%
+  rename(character = Group.LC)%>%
+  mutate(`CEA.level>5.0` = `>5.0`,
+         `CEA.level<=5.0` = `<=5.0`)%>%
+  select(-`<=5.0`,-`>5.0`)
+
+# relationship between cea and histology
+ceagrouplc2 = kCeaResult%>%
+#  filter(Group.LC2 !='LC(Unclassified)')%>%
+  group_by(Group.LC2,Cea.Level)%>%
+  summarise(n=n())%>%ungroup()%>%
+  arrange(Cea.Level)%>%group_by(Cea.Level)%>%
+  mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+  select(-n)%>%
+  spread(Cea.Level, prop.LC)%>%
+  rename(character = Group.LC2)%>%
+  mutate(`CEA.level>5.0` = `>5.0`,
+         `CEA.level<=5.0` = `<=5.0`)%>%
+  select(-`<=5.0`,-`>5.0`)
+
+ceagrouplc2head = ceagrouplc2[c(1),]
+ceagrouplc2head[c(1),] = c('histology',' ',' ')
+
+# relationship between cea and number of metastasis sites
+
+ceasitenum = kCeaResult%>%
+  group_by(SitesNum,Cea.Level)%>%
+  summarise(n=n())%>%ungroup()%>%
+  arrange(Cea.Level)%>%group_by(Cea.Level)%>%
+  mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+  select(-n)%>%
+  spread(Cea.Level, prop.LC)%>%
+  rename(character = SitesNum)%>%
+  mutate(`CEA.level>5.0` = `>5.0`,
+         `CEA.level<=5.0` = `<=5.0`)%>%
+  select(-`<=5.0`,-`>5.0`)
+
+ceasitenum2 = kCeaResult%>%
+  group_by(SitesNumType,Cea.Level)%>%
+  summarise(n=n())%>%ungroup()%>%
+  arrange(Cea.Level)%>%group_by(Cea.Level)%>%
+  mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+  select(-n)%>%
+  spread(Cea.Level, prop.LC)%>%
+  rename(character = SitesNumType)%>%
+  mutate(`CEA.level>5.0` = `>5.0`,
+         `CEA.level<=5.0` = `<=5.0`)%>%
+  select(-`<=5.0`,-`>5.0`)
+
+ceasitenum2 = ceasitenum2[c(3),]%>%
+  rbind(ceasitenum2[c(1),])
+
+ceasitenum2head = ceasitenum2[c(1),]
+ceasitenum2head[c(1),] = c('num of metastasis sites',' ',' ')
+
+#==============relationship between cea and location of metastatic site
+#==============Whether it's a distant metastasis
+
+ceadistantmetas = kCeaResult%>%
+  group_by(Pattern.Metastasis,Cea.Level)%>%
+  summarise(n=n())%>%ungroup()%>%
+  arrange(Cea.Level)%>%group_by(Cea.Level)%>%
+  mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+  select(-n)%>%
+  spread(Cea.Level, prop.LC)%>%
+  rename(character = Pattern.Metastasis)%>%
+  mutate(`CEA.level>5.0` = `>5.0`,
+         `CEA.level<=5.0` = `<=5.0`)%>%
+  select(-`<=5.0`,-`>5.0`)
+
+ceadistantmetashead = ceasitenum2[c(4),]
+ceadistantmetashead[c(1),] = c('location of metastasis',' ',' ')
+
+ceadistantmetas = ceadistantmetas[c(1:3),]
+
+# relationship size of tumor with CEA distriburtion interval
+
+ceasizetumor = kCeaResult%>%
+  group_by(tumor.size.classification,Cea.Level)%>%
+  summarise(n=n())%>%ungroup()%>%
+  arrange(Cea.Level)%>%group_by(Cea.Level)%>%
+  mutate(prop.LC = paste0(n,'(',round(n*100/sum(n),1),'%',')'))%>%
+  select(-n)%>%
+  spread(Cea.Level, prop.LC)%>%
+  rename(character = tumor.size.classification)%>%
+  mutate(`CEA.level>5.0` = `>5.0`,
+         `CEA.level<=5.0` = `<=5.0`)%>%
+  select(-`<=5.0`,-`>5.0`)
+
+ceasizetumorhead = ceasizetumor[c(1),]
+ceasizetumorhead[c(1),] = c('size of tumor',' ',' ')
+
+#=================cea overall===============
+
+ceaoverall = ceaheader%>%
+  rbind(ceametastasishead)%>%
+  rbind(ceametastasis)%>%
+  rbind(ceagrouplc2head)%>%
+  rbind(ceagrouplc2[-c(3),])%>%
+  rbind(ceagrouplc[c(1,5,2),])%>%
+  rbind(ceagrouplc2[c(3),])%>%
+  rbind(ceasitenum2head)%>%
+  rbind(ceasitenum2)%>%
+  rbind(ceadistantmetashead)%>%
+  rbind(ceadistantmetas)%>%
+  rbind(ceasizetumorhead)%>%
+  rbind(ceasizetumor[-c(2,5),])%>%
+  rbind(ceasizetumor[c(2),])
+
+cms.data = kCeaResult %>% 
+  filter(!is.na(tumor.size.classification)) %>% 
+  group_by(tumor.size.classification,Cea.Level, Metastasis) %>% 
+  summarise(n = n()) %>%
+  mutate(sum.scm = sum(n))%>%
+  mutate(group.scm = round(n*100/sum(n),1))
+
+cms.prop.data = kCeaResult %>% 
+  filter(!is.na(tumor.size.classification)) %>% 
+  group_by(tumor.size.classification, Cea.Level, Metastasis) %>% 
+  summarise(n = n()) %>%
+  mutate(sum.scm = sum(n))%>%
+  mutate(group.scm = round(n*100/sum(n),1)) %>%
+  mutate(prop.scm = paste0(n,'/',sum.scm,'(',group.scm,'%)'))%>%
+  select(-n, -group.scm, -sum.scm)%>%
+  spread(Metastasis, prop.scm)
+
+cms.prop.data = cms.prop.data[-c(3,4),]%>%rbind(cms.prop.data[c(3,4),])
+
+FreqMetastasisSite = MetastasisSite%>%
+  select(Name, MetastasisSite.single)%>%
+  group_by(Name)%>%
+  summarise(n=n())%>%
+  ungroup()%>%group_by(n)%>%
+  summarise(samples = n())%>%
+  rename(Num.Metastasis.Sites = n,
+         n = samples)%>%
+  mutate(prop = paste0(round(n*100/sum(n),1),'%'))
+FreqMetastasisSites = MetastasisSite%>%
+  select(Name, MetastasisSite.single)%>%
+  group_by(MetastasisSite.single)%>%
+  summarise(n=n())%>%arrange(desc(n))%>%
+  mutate(prop = paste0(round(n*100/nrow(kCeaResult%>%filter(Metastasis == 'Metastatic')),1),'%'))
+lym.nodes = kCeaResult%>%
+  filter(Metastasis == 'Metastatic')%>%
+  select(lymph.node.metastasis)%>%
+  group_by(lymph.node.metastasis)%>%
+  summarise(n=n())%>%
+  mutate(prop = paste0(round(n*100/sum(n),1),'%'))
+
+MetastasisSite1 = MetastasisSite%>%left_join(kCeaResult%>%select(Name, Pattern.Metastasis), by = 'Name')
+
+MetastasisSite1 = MetastasisSite1%>%
+  group_by(MetastasisSite.single,Pattern.Metastasis)%>%
+  summarise(n=n())
+
+metastasitype = MetastasisSite1%>%
+  group_by(MetastasisSite.single)%>%
+  mutate(sum1 = sum(n))%>%
+  distinct(MetastasisSite.single, sum1)%>%
+  arrange(desc(sum1))%>%
+  mutate(MetastasisSite.single.en = MetastasisSite.single)
+metastasitype$MetastasisSite.single.en[c(1:8)] = c('pleural\n effusion','hilar/mediastinal\n lymph node','bone','lung\n parenchyma','cervical\n lymph node','pericardial\n effusion','liver', 'brain')
+metastasitype = metastasitype%>%
+  mutate(MetastasisSite.single.en = ifelse(sum1 < 10, 'other',MetastasisSite.single.en))
+
+MetastasisSiteen1 = MetastasisSite%>%left_join(metastasitype%>%select(-sum1), by = 'MetastasisSite.single')
+
+MetastasisSite2 = MetastasisSiteen1%>%left_join(kCeaResult%>%select(Name, Pattern.Metastasis), by = 'Name')
+MetastasisSite21 = MetastasisSite2%>%
+  group_by(MetastasisSite.single.en,Pattern.Metastasis)%>%
+  summarise(n=n())%>%
+  mutate(sum = sum(n))%>%
+  arrange(desc(sum))
+
+MetastasisSite21 = MetastasisSite2[-c(7:8),]%>%rbind(MetastasisSite2[c(7:8),])%>%left_join(MetastasisSiteNum%>%mutate(n = ifelse(n == 1, 'single', 'multiple')),by = 'Name')%>%
+  rename(locationtype = n)
+
+Group.Cea = kCeaResult%>%filter(Group.LC2 != 'LC(Unclassified)')%>%
+  group_by(Group.LC2,Cea.Level,Metastasis)%>%
+  summarise(n=n())%>%ungroup()%>%
+  group_by(Group.LC2,Cea.Level)%>%
+  mutate(sum = sum(n), prop = round(n*100/sum,1))
+
+Group.Cea2 = kCeaResult%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell','Small-cell Lung cancer'))%>%
+  group_by(Group.LC,Cea.Level,Metastasis)%>%
+  summarise(n=n())%>%ungroup()%>%
+  group_by(Group.LC,Cea.Level)%>%
+  mutate(sum = sum(n), prop = round(n*100/sum,1))
+
+# standardize the output format of P value
+outputStand = function(a){
+  a = ifelse(str_detect(a, 'e-') == TRUE, 
+             paste0(round(as.numeric(str_split(a,'e-')[[1]][1]),2), ' ?? 10-',as.numeric(str_split(a,'e-')[[1]][2])),
+             ifelse(a > 0.05, round(a,2),
+                    ifelse(a > 0.045, round(a, 3), 
+                           ifelse(a < 0.01, paste0(round(as.numeric(str_split(format(a,scientific = TRUE),'e-')[[1]][1]),2),
+                                                    ' ?? 10-',
+                                                    as.numeric(str_split(format(a,scientific = TRUE),'e-')[[1]][2])),
+                                  round(a,2)))))
+  a
+}
+
+```
+
+## 1. Introduction
+
+Lung cancer is a malignant tumor that has so far threatened people's lives, and last three years of data show that it still has extremely high morbidity and mortality rates worldwide[@siegel_rebecca_l._cancer_2016;@siegel_cancer_2018]. Data show that up to 70% of patients are already in advanced stage lung cancer at the beginning of the diagnosis[@patz_panel_2007;@arrieta_brain_2009]. Compared with non advanced lung cancer, the prognosis of advanced lung cancer is more worse[@groome_iaslc_2007]. Tumor metastasis, eapecially the distant metastasis, is an important feature of advanced lung cancer and one of the important features of evaluating the prognosis of lung cancer[@eberhardt_iaslc_2015;@reck_metastatic_2014]. The metastatic characteristics of lung cancer are various, and the target of tumor metastasis may involve all organs of body[@lu_alpha_2016;@wang_risk_2009;@eberhardt_iaslc_2015;@ebben_brain_2016;@goncalves_priscila_h._risk_2016;@kuchuk_incidence_2015;@chen_wanqing_cancer_2016;@oliveira_relationship_2016]. 
+
+Imaging examinations, including positron emission tomography (PET), computed tomography (CT), and magnetic resonance imaging (MRI), are effective detection methods for tumor metastasis,  and has entered into common diagnostic practice[@eberhardt_iaslc_2015]. But the high cost of inspection and/or the invasive nature of some methods of examination are challenge to the clinical monitoring of potential patients and early detection of lung cancer[@patz_panel_2007;@zhang_important_2017]. These problems, to a certain extent, have led to a significant portion of lung cancer patients who have been found to be in a period of progress, and have adverse effects on the choice and prognosis of clinical treatment programs.
+Therefore, the clinical need for effective techniques to evaluate the progression of lung cancer metastasis. Many advances have been made in the identification of tumor-associated markers in body fluids such as plasma, serum or tumor tissue which could facilitate early detection and help for treatment monitoring. The use of CEA as a prognostic and predictive marker in lung cancer is widely debated, and the clinical value of CEA in lung cancer was reviewed retrospectively. CEA was found to be a useful prognostic marker in lung cancer patients, especially in  NSCLC[@goslin_carcinoembryonic_1981;@@lokich_jacob_j._plasma_1982;@arrieta_brain_2009;@grunnet_carcinoembryonic_2012;@chen_diagnostic_2015;@cedres_serum_2011;@arrieta_usefulness_2013;@tomita_postoperative_2015;@sawabata_postoperative_2004;@rubins_serum_1998;@ford_carcinoembryonic_1981;@molina_tumor_2003;@hotta_evaluation_2000]. Many literatures explored the value of serum CEA and other tumor markers in tumor metastasis, and the clinical value of combined application of multiple clinical markers in predicting tumor metastasis[@patz_panel_2007;@chen_diagnostic_2015;@zhang_important_2017]. High serum CEA level is a risk factor for bone metastasis development and is associated with poor prognosis in patients with advanced NSCLC, and highly likely to identify markers of lung cancer patients with significant potential for micrometastases[@arrieta_brain_2009;@tomita_postoperative_2015]. High CEA concentrations in cerebrospinal fluid (CSF) of patients is usually found at brain metastasis[@noris-garcia_brain_2004]. 
+
+However, there is still insufficient in-depth study on the relationship between serum CEA and tumor metastasis, and still not recommended as a routine examination of lung cancer[@reck_metastatic_2014].
+In this retrospective study, we evaluated the practical values of serum levels of CEA to estimate the occurrence of metastasis, and the association of CEA with other clinical characteristics.
+
+
+## 2. Subjects and methods
+### 2.1 Patient characteristics
+
+This retrospective study's design was approved by our institutional ethics review board.We retrospectively evaluated medical records from 238 patients who were diagnosed as lung tumors in respiratory medicine of our institution between January 2016 and December 2016.  All these patients underwent fiberoptic bronchoscopy biopsy at the initial stage of cancer diagnosis after hospitalized. The specimens needed for pathological diagnosis came from fiberoptic bronchoscopy, percutaneous lung biopsy or surgical resection. Lung carcinoma was classified according to histological subtype, using the World Health Organization classifications: NSCLC (included adenocarcinoma, squamous cell and large cell (LC)), and SCLC. 
+
+Serum CEA levels were also detected at the initial stage of cancer diagnosis. The events of interest included the relationshiop between the occurrence of metastasis of lung tumor and interval of baseline of serum CEA. Tumor metastases were mainly diagnosed by imaging modalities (CT and/or PET) or surgery within one months after hospitalized. 
+
+### 2.2 Measurement of serum CEA
+
+Surem CEA levels were detected with CEA test kit (Roche Diagnostics Corp, China) using cobas e601 analyzer. The standard cut-off value was set at 5.0 ng/mL for CEA, for 95% specifcity, as recommended by the manufacturers of the assay kits. All patients were divided into two groups according to the standard whether the result of CEA was higher than the standard cut-off (5.0 ng/ml).
+
+### 2.3 Statistical analysis
+
+The independence test was used, and 95% confidence intervals (95% CI) was calculated to estimate the interval of population proportion or to compare 2 or more than 2 proportions.  All analyses were performed by Chisq.test function, mantelhaen.test function and/or prop.test function in the stats package of R (version: R 3.4.3 for windows (x64), https://www.r-project.org/), and a p-value < 0.05 was considered statistically significant.
+
+## 3. Results
+
+### 3.1 Demographics
+
+Among the 238 patients, `r nrow(kCeaResult)` were eligible for analysis based on the inclusion criteria because of precise histological diagnosis and the level of CEA in the same period. A cohort diagram is shown in `r fig_number(name = 'Cohort.diagram',display = "cite")` and the patients's demographic characteristics are shown in `r table_number('distri',display = "cite")`. The mean age was `r round(mean(kCeaResult$Age),1)` years, `r c(kCeaResult%>%group_by(Sex)%>%summarise(n=n())%>%mutate(prop.sex = round(n*100/sum(n),1))%>%filter(Sex == 'male')%>%select(prop.sex))$prop.sex`% of the patients were men (`r table_number('distri',display = "cite")`). 
+
+In this retrospective analysis, a total of `r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic'))`(`r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic'))`/`r nrow(kCeaResult)`, `r round(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic'))*100/nrow(kCeaResult),1)`%) patients underwent tumor metastases. Of these patients, only a single tumor metastasis occurred in `r round(nrow(MetastasisSite2%>%group_by(Name)%>%summarise(n=n())%>%filter(n == 1))*100/length(levels(factor(MetastasisSite2$Name))),1)`%(`r nrow(MetastasisSite2%>%group_by(Name)%>%summarise(n=n())%>%filter(n == 1))`/`r length(levels(factor(MetastasisSite2$Name)))`), and the rest had multiple metastasis locations. The most common metastatic site was pleural effusion(`r c(metastasitype%>%ungroup()%>%filter(sum1 == max(sum1))%>%select(sum1))$sum1`/`r length(levels(factor(MetastasisSite2$Name)))`, `r round(c(metastasitype%>%ungroup()%>%filter(sum1 == max(sum1))%>%select(sum1))$sum1*100/length(levels(factor(MetastasisSite2$Name))),1)`%), followed by hilar/mediastinal lymph nodes(`r c(metastasitype%>%ungroup()%>%filter(MetastasisSite.single== '?????ܰͽ?')%>%select(sum1))$sum1`/`r length(levels(factor(MetastasisSite2$Name)))`, `r round(c(metastasitype%>%ungroup()%>%filter(MetastasisSite.single== '?????ܰͽ?')%>%select(sum1))$sum1*100/length(levels(factor(MetastasisSite2$Name))),1)`%). Metastasis sites and other distribution characteristics of tumor metastasis are shown in `r fig_number('metastasis.location', display = "cite")`.
+
+
+```{r metastasis.location, echo=FALSE, warning=FALSE, message=FALSE}
+#sort label
+reorder_size <- function(x) {
+  factor(x, levels = names(sort(table(x), decreasing = TRUE)))
+}
+
+
+testMetastasislocation = MetastasisSite21%>%
+  group_by(MetastasisSite.single.en, Pattern.Metastasis, locationtype)%>%
+  summarise(n=n())%>%
+  ungroup()%>%
+  group_by(MetastasisSite.single.en)%>%
+  mutate(sum = sum(n),
+         prop = round(n*100/sum,1))%>%
+  mutate(pattern.location = paste0(Pattern.Metastasis, '(', locationtype, ')'))
+
+testMetastasislocationgg = ggplot(testMetastasislocation, aes(x = MetastasisSite.single.en, fill = pattern.location, y = prop/100)) +
+  geom_col(position = 'fill', width = 0.8) +
+  geom_text(aes(x = MetastasisSite.single.en, y = prop/100, 
+                label = paste0(n,'\n(',prop,'%)')), position = position_stack(0.5),vjust = 0.5) +
+  scale_fill_manual(values = c('grey65','grey75','grey85','grey95')) +
+  theme_bw() +
+  scale_y_continuous(limits = c(-0.05,1)) +
+#  theme(axis.text.x = element_text(angle = -45)) +
+  theme(panel.grid.minor.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid =element_blank(),
+        panel.border = element_blank()) +
+  theme(legend.position = 'bottom') +
+  xlab(label = 'Tumor metastasis locations with highest frequency') +
+  ylab(label = 'Frequency combined distant\n or reginal metatasis') +
+  labs(fill = 'Location of metastasis: ')+
+  scale_y_continuous(labels = scales::percent)
+```
+
+### 3.2 Correlation analysis between tumor metastasis and CEA distribution interval 
+
+As shown in `r table_number('distri',display = "cite")`, in total of `r nrow(kCeaResult)` lung cancer patients with definite diagnosis, there were `r nrow(kCeaResult%>%filter(Cea.Level == '<=5.0'))` patients which serum CEA level were <=5ng/ml (`r nrow(kCeaResult%>%filter(Cea.Level == '<=5.0'))`/`r nrow(kCeaResult)`, `r round(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0'))*100/nrow(kCeaResult),1)`%, 95%CI: `r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0')),nrow(kCeaResult),correct = TRUE)$conf.int[1]*100,1)`-`r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0')),nrow(kCeaResult),correct = TRUE)$conf.int[2]*100,1)`%), in which there were `r nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Metastatic'))` metastasis  (`r nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Metastatic'))`/`r nrow(kCeaResult%>%filter(Cea.Level == '<=5.0'))`, `r round(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Metastatic'))*100/nrow(kCeaResult%>%filter(Cea.Level == '<=5.0')),1)`%, 95%CI:`r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Cea.Level == '<=5.0')),correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Cea.Level == '<=5.0')),correct = TRUE)$conf.int[2]*100,1)`%), and no metastasis in `r nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Unmetastatic'))` cases(`r nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Unmetastatic'))`/`r nrow(kCeaResult%>%filter(Cea.Level == '<=5.0'))`, `r round(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Unmetastatic'))*100/nrow(kCeaResult%>%filter(Cea.Level == '<=5.0')),1)`%,95%CI:`r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Unmetastatic')),nrow(kCeaResult%>%filter(Cea.Level == '<=5.0')),correct = TRUE)$conf.int[1]*100,1)`-`r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Unmetastatic')),nrow(kCeaResult%>%filter(Cea.Level == '<=5.0')),correct = TRUE)$conf.int[2]*100,1)`%). When CEA <=5ng/ml, the proportion of lung cancer without tumor metastasis was significantly `r ifelse(prop.test(x = c(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Unmetastatic')),nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Metastatic'))),n = c(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Cea.Level == '<=5.0'))), correct = TRUE,alternative = 'greater')$p.value > 0.05, 'lower', 'higher')` than that of lung cancer with tumor metastasis (p = `r a = prop.test(x = c(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Unmetastatic')),nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Metastatic'))),n = c(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Cea.Level == '<=5.0'))), correct = TRUE,alternative = 'greater')$p.value;outputStand(a)`, 95%CI:`r round(prop.test(x = c(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Unmetastatic')),nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Metastatic'))),n = c(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Cea.Level == '<=5.0'))), correct = TRUE, alternative = 'greater')$conf.int[1],1)*100`-`r round(prop.test(x = c(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Unmetastatic')),nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Metastatic'))),n = c(nrow(kCeaResult%>%filter(Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Cea.Level == '<=5.0'))), correct = TRUE, alternative = 'greater')$conf.int[2],1)*100`%).
+In `r nrow(kCeaResult%>%filter(Cea.Level == '>5.0'))` (`r nrow(kCeaResult%>%filter(Cea.Level == '>5.0'))`/`r nrow(kCeaResult)`, `r round(nrow(kCeaResult%>%filter(Cea.Level == '>5.0'))*100/nrow(kCeaResult),1)`%, 95%CI:`r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '>5.0')),nrow(kCeaResult),correct = TRUE)$conf.int[1]*100,1)`-`r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '>5.0')),nrow(kCeaResult),correct = TRUE)$conf.int[2]*100,1)`%) cases of CEA >5ng/ml lung cancer, there were `r nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Metastatic'))` (`r nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Metastatic'))`/`r nrow(kCeaResult%>%filter(Cea.Level == '>5.0'))`, `r round(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Metastatic'))*100/nrow(kCeaResult%>%filter(Cea.Level == '>5.0')),1)`%, 95%CI: `r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0')),correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0')),correct = TRUE)$conf.int[2]*100,1)`%) cases of metastasis, no metastasis amounted to `r nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Unmetastatic'))` (`r nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Unmetastatic'))`/`r nrow(kCeaResult%>%filter(Cea.Level == '>5.0'))`, `r round(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Unmetastatic'))*100/nrow(kCeaResult%>%filter(Cea.Level == '>5.0')),1)`%, 95%CI:`r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Unmetastatic')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0')),correct = TRUE)$conf.int[1]*100,1)`-`r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Unmetastatic')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0')),correct = TRUE)$conf.int[2]*100,1)`%) cases. In this CEA level interval, the proportion of tumor metastasis was significantly `r ifelse(prop.test(x = c(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Unmetastatic'))),n = c(nrow(kCeaResult%>%filter(Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0'))), correct = TRUE, alternative = 'greater')$p.value > 0.05, 'lower', 'higher')` than that of no tumor metastasis (p = `r a = prop.test(x = c(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Unmetastatic'))),n = c(nrow(kCeaResult%>%filter(Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0'))), correct = TRUE, alternative = 'greater')$p.value;outputStand(a)`, 95%CI:`r round(prop.test(x = c(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Unmetastatic'))),n = c(nrow(kCeaResult%>%filter(Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0'))), correct = TRUE, alternative = 'greater')$conf.int[1],1)*100` - `r round(prop.test(x = c(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Unmetastatic'))),n = c(nrow(kCeaResult%>%filter(Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0'))), correct = TRUE, alternative = 'greater')$conf.int[2],1)*100`%).
+There was statistical `r ifelse(chisq.test(kCeaResult$Metastasis, kCeaResult$Cea.Level)$p.value < 0.05,'correlation','not correlation')` between the CEA level and tumor metastasis (p = `r a = chisq.test(kCeaResult$Metastasis, kCeaResult$Cea.Level)$p.value;outputStand(a)`).
+
+
+
+`r table_number('distri', caption = 'Characteristics of lung cancer patients overall, histological characteristics and CEA distribution with or without metastasis')`
+
+```{r distri,echo=FALSE, warning=FALSE, message=FALSE}
+knitr::kable(distri)
+```
+
+### 3.3 Relationship of tumor metastasis and CEA distribution interval to histology
+
+Of the `r nrow(kCeaResult)` patients diagnosed with lung cancer, except `r nrow(kCeaResult[kCeaResult$Group.LC2 == 'LC(Unclassified)',])` cases which could not confirmed histology due to insufficient tissue material for histological diagnosis, the other patients had definite histological diagnosis (`r table_number('distri',display = "cite")`). 
+In all patients with identified histology, there were `r nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',])` NSCLC (`r nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',])`/`r nrow(kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)',])`, `r round(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',])*100/nrow(kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)',]),1)`%, 95%CI:`r round(prop.test(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',]),nrow(kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)',]),correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',]),nrow(kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)',]),correct = TRUE)$conf.int[2]*100,1)`%), and `r nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',])` SCLC (`r nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',])`/`r nrow(kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)',])`, `r round(nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',])*100/nrow(kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)',]),1)`%, 95%CI:`r round(prop.test(nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',]),nrow(kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)',]),correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',]),nrow(kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)',]),correct = TRUE)$conf.int[2]*100,1)`%). 
+The prevalence of tumor metastasis in NSCLC was `r ifelse(prop.test(x= c(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC'& kCeaResult$Metastasis == 'Metastatic',]), nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC'& kCeaResult$Metastasis == 'Metastatic',])),n = c(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',]),nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',])), correct = FALSE)$p.value > 0.05, 'not significantly','significantly')` more frequent than which in SCLC (`r round(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC'& kCeaResult$Metastasis == 'Metastatic',])*100/nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',]),1)`% (`r nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC'& kCeaResult$Metastasis == 'Metastatic',])`/`r nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',])`, 95%CI:`r round(prop.test(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC'& kCeaResult$Metastasis == 'Metastatic',]),nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',]),correct=TRUE)$conf.int[1]*100,1)`-`r round(prop.test(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC'& kCeaResult$Metastasis == 'Metastatic',]),nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',]),correct=TRUE)$conf.int[2]*100,1)`%) vs. `r round(nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC'& kCeaResult$Metastasis == 'Metastatic',])*100/nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',]),1)`% (`r nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC'& kCeaResult$Metastasis == 'Metastatic',])`/`r nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',])`, 95%CI:`r round(prop.test(nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC'& kCeaResult$Metastasis == 'Metastatic',]),nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',]),correct=TRUE)$conf.int[1]*100,1)`-`r round(prop.test(nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC'& kCeaResult$Metastasis == 'Metastatic',]),nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',]),correct=TRUE)$conf.int[2]*100,1)` %), respectively, p = `r a = prop.test(x= c(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC'& kCeaResult$Metastasis == 'Metastatic',]),nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC'& kCeaResult$Metastasis == 'Metastatic',])),n = c(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',]),nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',])), correct = FALSE)$p.value; outputStand(a)`, 95%CI:`r round(prop.test(x= c(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC'& kCeaResult$Metastasis == 'Metastatic',]),nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC'& kCeaResult$Metastasis == 'Metastatic',])),n = c(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',]),nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',])), correct = FALSE)$conf.int[1]*100,1)` - `r round(prop.test(x= c(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC'& kCeaResult$Metastasis == 'Metastatic',]),nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC'& kCeaResult$Metastasis == 'Metastatic',])),n = c(nrow(kCeaResult[kCeaResult$Group.LC2 == 'NSCLC',]),nrow(kCeaResult[kCeaResult$Group.LC2 == 'SCLC',])), correct = FALSE)$conf.int[2]*100,1)`%), and the results of chi-square test revealed that histology was `r ifelse(chisq.test(table(kCeaResult[kCeaResult$Metastasis == 'Metastatic' & kCeaResult$Group.LC2 != 'LC(Unclassified)',]$Group.LC2,kCeaResult[kCeaResult$Metastasis == 'Metastatic' & kCeaResult$Group.LC2 != 'LC(Unclassified)',]$Cea.Level))$p.value < 0.05,'statistically correlated with','not statistically correlated with')` tumor metastasis (p = `r a = chisq.test(kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)',]$Group.LC2, kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)',]$Metastasis)$p.value;outputStand(a)`). 
+
+ 
+
+The proportion which CEA > 5.0ng/ml was `r round(nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC' & Cea.Level == '>5.0'))*100/nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC')),1)`% (`r nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC' & Cea.Level == '>5.0'))`/`r nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC'))`, 95%CI: `r round(prop.test(nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC' & Cea.Level == '>5.0')), nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC')), correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC' & Cea.Level == '>5.0')), nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC')), correct = TRUE)$conf.int[2]*100,1)`%) for NSCLC, and `r round(nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC' & Cea.Level == '>5.0'))*100/nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC')),1)`% (`r nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC' & Cea.Level == '>5.0'))`/`r nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC'))`, 95%CI: `r round(prop.test(nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC' & Cea.Level == '>5.0')), nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC')), correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC' & Cea.Level == '>5.0')), nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC')), correct = TRUE)$conf.int[2]*100,1)`%) for SCLC, correspondingly (`r table_number('ceaoverall',display = "cite")`). 
+There was `r ifelse(prop.test(x = c(nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC' & Cea.Level == '>5.0'))), n = c(nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC')),nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC'))), correct = TRUE)$p.value > 0.05,'no difference','difference')` between the above two proportions (p = `r a = prop.test(x = c(nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC' & Cea.Level == '>5.0'))), n = c(nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC')),nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC'))), correct = TRUE)$p.value;outputStand(a)`, 95%CI: `r round(prop.test(x = c(nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC' & Cea.Level == '>5.0'))), n = c(nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC')),nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC'))), correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(x = c(nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC' & Cea.Level == '>5.0'))), n = c(nrow(kCeaResult%>%filter(Group.LC2 == 'NSCLC')),nrow(kCeaResult%>%filter(Group.LC2 == 'SCLC'))), correct = TRUE)$conf.int[2]*100,1)`%). Even in `r nrow(kCeaResult%>%filter(Group.LC2 != 'LC(Unclassified)' & Metastasis == 'Metastatic'))` NSCLC and SCLC with tumor metastasis, serum CEA level distribution interval was `r ifelse(chisq.test(kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)'& kCeaResult$Metastasis == 'Metastatic',]$Group.LC2, kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)'& kCeaResult$Metastasis == 'Metastatic',]$Cea.Level)$p.value > 0.05,'still not correlated','correlated')` with histology (p = `r a = chisq.test(kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)'& kCeaResult$Metastasis == 'Metastatic',]$Group.LC2, kCeaResult[kCeaResult$Group.LC2 != 'LC(Unclassified)'& kCeaResult$Metastasis == 'Metastatic',]$Cea.Level)$p.value;outputStand(a)`).
+
+There was `r ifelse(chisq.test(kCeaResult[kCeaResult$Group.LC == 'Adenocarcinoma' | kCeaResult$Group.LC == 'Squamous cell' | kCeaResult$Group.LC == 'Small-cell Lung cancer',]$Group.LC, kCeaResult[kCeaResult$Group.LC == 'Adenocarcinoma' | kCeaResult$Group.LC == 'Squamous cell' | kCeaResult$Group.LC == 'Small-cell Lung cancer',]$Cea.Level)$p.value < 0.05,'significantly','no significantly')` difference among the CEA distributions of adenocarcinoma, squamous cell and SCLC (p = `r a = chisq.test(kCeaResult[kCeaResult$Group.LC == 'Adenocarcinoma' | kCeaResult$Group.LC == 'Squamous cell' | kCeaResult$Group.LC == 'Small-cell Lung cancer',]$Group.LC, kCeaResult[kCeaResult$Group.LC == 'Adenocarcinoma' | kCeaResult$Group.LC == 'Squamous cell' | kCeaResult$Group.LC == 'Small-cell Lung cancer',]$Cea.Level)$p.value; outputStand(a)`) (`r table_number('cms.prop.data', display = "cite")`). 
+
+`r round(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Cea.Level == '>5.0'))*100/nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),1)`% (`r nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Cea.Level == '>5.0'))`/`r nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma'))`)  of adenocarcinoma and `r round(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Cea.Level == '>5.0'))*100/nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell')),1)`% (`r nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Cea.Level == '>5.0'))`/`r nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'))`) of squamous cell had a serum CEA level higher than 5.0ng/ml. Compared with squamous cell and SCLC, the prevalence of adenocarcinoma which CEA >5.0ng/ml was more higher (vs. squamous cell: p = `r a = prop.test(x =c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'))),correct = TRUE, alternative = 'greater')$p.value;outputStand(a)`(95%CI:`r round(prop.test(x =c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'))),correct = TRUE, alternative = 'greater')$conf.int[1]*100,1)` - `r round(prop.test(x =c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'))),correct = TRUE, alternative = 'greater')$conf.int[2]*100,1)`%); vs. SCLC: p = `r a=prop.test(x =c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'))),correct = TRUE, alternative = 'greater')$p.value;outputStand(a)`(95%CI: `r round(prop.test(x =c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'))),correct = TRUE, alternative = 'greater')$conf.int[1]*100,1)` - `r round(prop.test(x =c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'))),correct = TRUE, alternative = 'greater')$conf.int[2]*100,1)`%)). There was `r ifelse(round(prop.test(x =c(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'))),correct = TRUE)$p.value,2) > 0.05, 'no statistically','statistically')` difference between prevalences of squamous cell and SCLC which CEA >5.0ng/ml (p = `r a=prop.test(x =c(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'))),correct = TRUE)$p.value;outputStand(a)`(95%CI: `r round(prop.test(x =c(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'))),correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(x =c(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'))),correct = TRUE)$conf.int[2]*100,1)`%)). The proportion of metastasis in Adenocarcinoma was `r ifelse(prop.test(x=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'& Metastasis == 'Metastatic'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'))),alternative = 'greater',correct = TRUE)$p.value > 0.05,'equal','higher')` than Squamous cell(`r nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic'))`/`r nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma'))`, `r round(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic'))*100/nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),1)`% vs. `r nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic'))`/`r nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'))`, `r round(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic'))*100/nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell')),1)`%, p = `r a = prop.test(x=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'& Metastasis == 'Metastatic'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'))),alternative = 'greater',correct = TRUE)$p.value;outputStand(a)`, 95%CI: `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'& Metastasis == 'Metastatic'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'))),alternative = 'greater',correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'& Metastasis == 'Metastatic'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell'))),alternative = 'greater',correct = TRUE)$conf.int[2]*100,1)`%)(`r table_number('distri',display = "cite")`). There were `r ifelse(prop.test(x=c(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'& Metastasis == 'Metastatic'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'))),correct = TRUE)$p.value > 0.05 & prop.test(x=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'& Metastasis == 'Metastatic'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'))),alternative = 'greater',correct = TRUE)$p.value > 0.05,'no statistical  difference','statistical  difference')` between the probabilities of metastasis in Squamous cell and SCLC, likewise the comparison between Adenocarcinoma and SCLC (Squamous cell vs. SCLC: p = `r a= prop.test(x=c(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'& Metastasis == 'Metastatic'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Squamous cell')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'))),correct = TRUE)$p.value;outputStand(a)`; Adenocarcinoma vs. SCLC: p = `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'& Metastasis == 'Metastatic'))),n=c(nrow(kCeaResult%>%filter(Group.LC == 'Adenocarcinoma')),nrow(kCeaResult%>%filter(Group.LC == 'Small-cell Lung cancer'))),correct = TRUE)$p.value,2)`). 
+
+If CEA <= 5.0ng/ml, there was `r ifelse(prop.test(x = c((Group.Cea%>%filter(Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(n))$n), n =c((Group.Cea%>%filter(Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum), correct = TRUE)$p.value > 0.05, 'no statistically','statistically')` significant difference between the probabilities of without tumor metastasis in NSCLC and SCLC patients (p = `r a=prop.test(x = c((Group.Cea%>%filter(Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(n))$n), n =c((Group.Cea%>%filter(Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum), correct = TRUE)$p.value;outputStand(a)`, 95%CI: `r round(prop.test(x = c((Group.Cea%>%filter(Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(n))$n), n =c((Group.Cea%>%filter(Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum), correct = TRUE)$conf.int[1]*100, 1)` - `r round(prop.test(x = c((Group.Cea%>%filter(Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(n))$n), n =c((Group.Cea%>%filter(Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum), correct = TRUE)$conf.int[2]*100, 1)`%) (`r fig_number('Group.Cea.plot', display = "cite")`), even between the probabilities of without tumor metastasis in Adenocarcinoma and Squamous cell patients (p = `r round(prop.test(x =c((Group.Cea2%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell') & Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(n))$n), n =c((Group.Cea2%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell') & Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum), correct = TRUE)$p.value,2)`, 95%CI: `r round(prop.test(x =c((Group.Cea2%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell') & Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(n))$n), n =c((Group.Cea2%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell') & Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum), correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(x =c((Group.Cea2%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell') & Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(n))$n), n =c((Group.Cea2%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell') & Metastasis == 'Unmetastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum), correct = TRUE)$conf.int[2]*100,1)`%) (`r fig_number('Group.Cea.plot2', display = "cite")`). And ant the same time, if CEA > 5.0ng/ml, there was no statistical evidence proved there ware statistically significant difference between the probabilities of tumor metastasis between NSCLC and SCLC patients (p = `r a=prop.test(x = c((Group.Cea%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n), n =c((Group.Cea%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum), correct = TRUE)$p.value;outputStand(a)`, 95%CI: `r round(prop.test(x = c((Group.Cea%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n), n =c((Group.Cea%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum), correct = TRUE)$conf.int[1]*100,2)` - `r round(prop.test(x = c((Group.Cea%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n), n =c((Group.Cea%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum), correct = TRUE)$conf.int[2]*100,2)`%), and between the probabilities of tumor metastasis in Adenocarcinoma and Squamous cell patients(p = `r a=prop.test(x =c((Group.Cea2%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell') & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n), n =c((Group.Cea2%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell') & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum), correct = TRUE)$p.value;outputStand(a)`, 95%CI: `r round(prop.test(x =c((Group.Cea2%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell') & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n), n =c((Group.Cea2%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell') & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum), correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(x =c((Group.Cea2%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell') & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n), n =c((Group.Cea2%>%filter(Group.LC %in% c('Adenocarcinoma','Squamous cell') & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum), correct = TRUE)$conf.int[2]*100,1)`%).
+In NSCLC, if the patient's CEA > 5.0ng/ml, the probability of tumor metastasis was `r ifelse(prop.test(x = c(c(Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Unmetastatic')%>%select(n))$n), n = c(c(Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Unmetastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'greater')$p.value < 0.05, 'higher', 'not higher')` than that of patients which CEA <= 5.0ng/ml(`r (Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n`/`r (Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum` (`r round((Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n*100/(Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum,1)`%) vs. `r (Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(n))$n`/`r (Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum` (`r round((Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(n))$n*100/(Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum,1)`%), respectively, p = `r a=prop.test(x = c(c(Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Unmetastatic')%>%select(n))$n), n = c(c(Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Unmetastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'greater')$p.value;outputStand(a)`, 95%CI: `r round(prop.test(x = c(c(Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Unmetastatic')%>%select(n))$n), n = c(c(Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Unmetastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'greater')$conf.int[1]*100,1)` - `r round(prop.test(x = c(c(Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Unmetastatic')%>%select(n))$n), n = c(c(Group.Cea%>%filter(Group.LC2 == 'NSCLC' & Metastasis == 'Unmetastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'greater')$conf.int[2]*100,1)`%); however, in SCLC patients, the probability of tumor metastasis was `r ifelse(prop.test(x = c(c(Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Unmetastatic')%>%select(n))$n), n = c(c(Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Unmetastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'greater')$p.value > 0.05, 'not statistically significant','statistically significant')` in different levels of CEA (`r round((Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(n))$n*100/(Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum,1)`%  (`r (Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(n))$n`/`r (Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum`) in CEA <=5.0ng/ml, `r round((Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n*100/(Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum,1)`%  (`r (Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n`/`r (Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum`) in CEA >5.0ng/ml, p = `r a=prop.test(x = c(c(Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Unmetastatic')%>%select(n))$n), n = c(c(Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Unmetastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'greater')$p.value;outputStand(a)`, 95%CI: `r round(prop.test(x = c(c(Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Unmetastatic')%>%select(n))$n), n = c(c(Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Unmetastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'greater')$conf.int[1]*100,1)` - `r round(prop.test(x = c(c(Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Unmetastatic')%>%select(n))$n), n = c(c(Group.Cea%>%filter(Group.LC2 == 'SCLC' & Metastasis == 'Unmetastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'greater')$conf.int[2]*100,1)`%). In Adenocarcinoma, there was `r round(c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(n))$n*100/c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum,1)`% (`r c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(n))$n`/`r c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum`, 95%CI: `r round(prop.test(c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(n))$n, c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum, correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(n))$n, c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum, correct = TRUE)$conf.int[2]*100,1)`%) tumor metastasis when CEA <= 5.0ng/ml, and `r round(c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n*100/c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum,1)`% (`r c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n`/`r c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum`, 95%CI: `r round(prop.test(c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n, c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum, correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n, c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum, correct = TRUE)$conf.int[2]*100,1)`%) tumor metastasis when CEA > 5.0ng/ml, p = `r a=prop.test(x = c(c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic')%>%select(n))$n), n = c(c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'less')$p.value;outputStand(a)` (95%CI: `r round(prop.test(x = c(c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic')%>%select(n))$n), n = c(c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'less')$conf.int[1]*100,1)` - `r round(prop.test(x = c(c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic')%>%select(n))$n), n = c(c(Group.Cea2%>%filter(Group.LC == 'Adenocarcinoma' & Metastasis == 'Metastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'less')$conf.int[2]*100,1)`%); in Squamous cell, there was `r round(c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(n))$n*100/c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum,1)`% (`r c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(n))$n`/`r c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum`, 95%CI: `r round(prop.test(c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(n))$n, c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum, correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(n))$n, c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '<=5.0')%>%select(sum))$sum, correct = TRUE)$conf.int[2]*100,1)`%) tumor metastasis when CEA <= 5.0ng/ml, and `r round(c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n*100/c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum,1)`% (`r c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n`/`r c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum`, 95%CI: `r round(prop.test(c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n, c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum, correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(n))$n, c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic' & Cea.Level == '>5.0')%>%select(sum))$sum, correct = TRUE)$conf.int[2]*100,1)`%) tumor metastasis when CEA > 5.0ng/ml, p = `r a = prop.test(x = c(c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic')%>%select(n))$n), n = c(c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'less')$p.value;outputStand(a)` (95%CI: `r round(prop.test(x = c(c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic')%>%select(n))$n), n = c(c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'less')$conf.int[1]*100,1)` - `r round(prop.test(x = c(c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic')%>%select(n))$n), n = c(c(Group.Cea2%>%filter(Group.LC == 'Squamous cell' & Metastasis == 'Metastatic')%>%select(sum))$sum), correct = TRUE, alternative = 'less')$conf.int[2]*100,1)`%), correspondingly.
+
+```{r Group.Cea.plot, echo=FALSE, warning=FALSE, message=FALSE}
+Group.Cea.plot = ggplot(Group.Cea, aes(x = Group.LC2, y = n, fill = Metastasis))+
+  geom_bar(stat = 'identity', position  = 'fill')+
+  scale_fill_manual(values = c('grey65','grey85'), labels = c('metastasis','without metastasis'))+
+  facet_wrap(~Cea.Level)+
+  geom_text(aes(x = Group.LC2, y = prop/100, label = paste0(n,'\n(',prop,'%)')), position = position_stack(0.5),vjust = 0.5)+
+  theme_bw()+
+  xlab(label = 'histology type of Lung cancer')+
+  ylab(label = 'Frequency')+
+  theme(panel.grid.minor.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid =element_blank(),
+        panel.border = element_blank()) +
+  theme(legend.position = 'bottom')+
+  labs(fill = 'The state of tumor metastasis: ')+
+  scale_y_continuous(labels = scales::percent)  #????scales????????percent??????y???İٷֱȽ??аٷֻ??????ÿ?һЩ
+
+Group.Cea.plot2 = ggplot(Group.Cea2, aes(x = Group.LC, y = n, fill = Metastasis))+
+  geom_bar(stat = 'identity', position  = 'fill')+
+  scale_fill_manual(values = c('grey65','grey85'), labels = c('metastasis','without metastasis'))+
+  facet_wrap(~Cea.Level)+
+  geom_text(aes(x = Group.LC, y = prop/100, label = paste0(n,'\n(',prop,'%)')), position = position_stack(0.5),vjust = 0.5)+
+  theme_bw()+
+  xlab(label = 'histological subtype of Lung cancer')+
+  ylab(label = 'Frequency')+
+  theme(panel.grid.minor.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid =element_blank(),
+        panel.border = element_blank()) +
+  theme(legend.position = 'bottom')+
+  labs(fill = 'The state of tumor metastasis: ')+
+  scale_y_continuous(labels = scales::percent)  #????scales????????percent??????y???İٷֱȽ??аٷֻ??????ÿ?һЩ
+
+# gridExtra::grid.arrange(Group.Cea.plot,Group.Cea.plot2,ncol = 1)
+```
+
+
+
+
+### 3.4 Relationship of Size of tumor and tumor metastasis to CEA distribution interval
+
+Because of special circumstances, such as emphysema, voluminous pleural effusion, tumors in the bronchus and so on, the size of the tumor in `r nrow(kCeaResult%>%filter(is.na(tumor.size.classification)))` patients could not be accurately measured. According to the greatest dimension of tumor, we divided the `r nrow(kCeaResult%>%filter(!is.na(tumor.size.classification)))` patients which had been measured the size of tumor into four groups: tumor size not more than 3cm (<=3), more than 3cm and not more than 5cm (3-5), more than 5cm and not more than 7cm (5-7), more than 7cm (>7) (`r table_number('distri',display = "cite")`). There was `r ifelse(chisq.test(kCeaResult[!is.na(kCeaResult$tumor.size.classification),]$tumor.size.classification, kCeaResult[!is.na(kCeaResult$tumor.size.classification),]$Metastasis)$p.value > 0.05, 'no statistical','statistical')` evidence to confirm the correlation between tumor size and tumor metastasis (p = `r a=chisq.test(kCeaResult[!is.na(kCeaResult$tumor.size.classification),]$tumor.size.classification, kCeaResult[!is.na(kCeaResult$tumor.size.classification),]$Metastasis)$p.value;outputStand(a)`).
+Similarly, there was `r ifelse(chisq.test(kCeaResult[!is.na(kCeaResult$tumor.size.classification),]$tumor.size.classification, kCeaResult[!is.na(kCeaResult$tumor.size.classification),]$Cea.Level)$p.value > 0.05,'no statistically significant difference','statistically significant difference')` among the proportions of different tumor sizes in different CEA distributions (p = `r a=chisq.test(kCeaResult[!is.na(kCeaResult$tumor.size.classification),]$tumor.size.classification, kCeaResult[!is.na(kCeaResult$tumor.size.classification),]$Cea.Level)$p.value;outputStand(a)`)(`r table_number('ceaoverall',display = "cite")`). However, the distribution of serum CEA was statistically correlated with tumor metastasis in different tumor size groups (p = `r a = mantelhaen.test(xtabs(~Cea.Level+Metastasis+tumor.size.classification, kCeaResult[!is.na(kCeaResult$tumor.size.classification),]))$p.value;outputStand(a)`, 95%CI: `r round(mantelhaen.test(xtabs(~Cea.Level+Metastasis+tumor.size.classification, kCeaResult[!is.na(kCeaResult$tumor.size.classification),]))$conf.int[1]*100,1)` - `r round(mantelhaen.test(xtabs(~Cea.Level+Metastasis+tumor.size.classification, kCeaResult[!is.na(kCeaResult$tumor.size.classification),]))$conf.int[2]*100,1)`%) (`r table_number('cms.prop.data', display = "cite")`). When serum CEA were higher than 5.0 in different tumor size groups, the proportions of tumor metastasis were significantly higher than that without tumor metastasis (p = `r a=prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '<=3' & Cea.Level == '>5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '<=3')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[2],2)), correct = TRUE, alternative = 'greater')$p.value;outputStand(a)` for tumor size <= 3cm, `r a=prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '3-5' & Cea.Level == '>5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '3-5')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[2],2)), correct = TRUE, alternative = 'greater')$p.value;outputStand(a)` for tumor size 3-5cm, `r  a=prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '5-7' & Cea.Level == '>5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '5-7')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[2],2)), correct = TRUE, alternative = 'greater')$p.value;outputStand(a)` for tumor size 5-7cm, `r a=prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '>7' & Cea.Level == '>5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '>7')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[2],2)), correct = TRUE, alternative = 'greater')$p.value;outputStand(a)` for tumor sizetumor size > 7cm, respectively).
+When serum CEA was not higher than 5.0, the proportions of tumor metastasis were significantly lower than that without tumor metastasis when the tumor size were in the range 3-5cm or 5-7cm (`r a=prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '3-5' & Cea.Level == '<=5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '3-5')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[1],2)), correct = TRUE, alternative = 'less')$p.value;outputStand(a)` (95%CI: `r round(prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '3-5' & Cea.Level == '<=5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '3-5')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[1],2)), correct = TRUE, alternative = 'less')$conf.int[1]*100,1)` - `r round(prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '3-5' & Cea.Level == '<=5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '3-5')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[1],2)), correct = TRUE, alternative = 'less')$conf.int[2]*100,1)`%) for tumor size 3-5cm, `r a = prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '5-7' & Cea.Level == '<=5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '5-7')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[1],2)), correct = TRUE, alternative = 'less')$p.value;outputStand(a)` (95%CI: `r round(prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '5-7' & Cea.Level == '<=5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '5-7')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[1],2)), correct = TRUE, alternative = 'less')$conf.int[1]*100,1)` - `r round(prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '5-7' & Cea.Level == '<=5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '5-7')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[1],2)), correct = TRUE, alternative = 'less')$conf.int[2]*100,1)`%) for tumor size 5-7cm, respectively), but the proportions of tumor metastasis had no significantly different  with  that without tumor metastasis when the tumor size was not more than 3cm or more than 7cm (p = `r a=prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '<=3' & Cea.Level == '<=5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '<=3')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[1],2)), correct = TRUE, alternative = 'less')$p.value;outputStand(a)` (95%CI: `r round(prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '<=3' & Cea.Level == '<=5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '<=3')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[1],2)), correct = TRUE, alternative = 'less')$conf.int[1]*100,1)` - `r round(prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '<=3' & Cea.Level == '<=5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '<=3')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[1],2)), correct = TRUE, alternative = 'less')$conf.int[2]*100,1)`%) for tumor size <= 3cm, `r a=prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '>7' & Cea.Level == '<=5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '>7')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[1],2)), correct = TRUE, alternative = 'less')$p.value;outputStand(a)` (95%CI: `r round(prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '>7' & Cea.Level == '<=5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '>7')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[1],2)), correct = TRUE, alternative = 'less')$conf.int[1]*100,1)` - `r round(prop.test(x = c(kCeaResult%>%filter(tumor.size.classification == '>7' & Cea.Level == '<=5.0')%>%group_by(Metastasis)%>%summarise(n=n())%>%select(n))$n, n = c(rep(c(kCeaResult%>%filter(tumor.size.classification == '>7')%>%group_by(Cea.Level)%>%summarise(n=n())%>%select(n))$n[1],2)), correct = TRUE, alternative = 'less')$conf.int[2]*100,1)`%) for tumor sizetumor size > 7cm, respectively).
+
+### 3.5 Relationship between number of tumor metastasis sites and CEA distribution interval
+
+
+According to the number of tumor metastasis sites, We divided all the patients who had been detected for tumor metastasis into two groups: only one tumor metastasis sites, and no less than 2 tumor metastasis sites (`r table_number('ceaoverall',display = "cite")`).There was `r round(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '1'))*100/nrow(kCeaResult%>%filter(SitesNumType == '1')),1)`% (`r nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '1'))`/`r nrow(kCeaResult%>%filter(SitesNumType == '1'))`, 95%CI: `r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '1')), nrow(kCeaResult%>%filter(SitesNumType == '1')), correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '1')), nrow(kCeaResult%>%filter(SitesNumType == '1')), correct = TRUE)$conf.int[2]*100,1)`%) patients who had only one tumor metastasis site had CEA level >5.0ng/ml, and `r round(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '>=2'))*100/nrow(kCeaResult%>%filter(SitesNumType == '>=2')),1)`% (`r nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '>=2'))`/`r nrow(kCeaResult%>%filter(SitesNumType == '>=2'))`, 95%CI: `r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '>=2')), nrow(kCeaResult%>%filter(SitesNumType == '>=2')), correct = TRUE)$conf.int[1]*100,1)` - `r round(prop.test(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '>=2')), nrow(kCeaResult%>%filter(SitesNumType == '>=2')), correct = TRUE)$conf.int[2]*100,1)`%) for patients who had tumor metastasis sites >=2. Prevalence of serum CEA levels >5.0ng/ml in patients with more than 1 metastasis sites had `r ifelse(prop.test(x=c(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '>=2')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '1'))),n=c(nrow(kCeaResult%>%filter(SitesNumType == '1')),nrow(kCeaResult%>%filter(SitesNumType == '>=2'))),correct=TRUE,alternative='greater')$p.value < 0.05, 'statistically significant','not statistically significant')` higher than for patients with only one metastatic location (p = `r a = prop.test(x=c(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '>=2')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '1'))),n=c(nrow(kCeaResult%>%filter(SitesNumType == '1')),nrow(kCeaResult%>%filter(SitesNumType == '>=2'))),correct=TRUE,alternative='greater')$p.value;outputStand(a)`, 95%CI: `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '>=2')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '1'))),n=c(nrow(kCeaResult%>%filter(SitesNumType == '>=2')),nrow(kCeaResult%>%filter(SitesNumType == '1'))),correct=TRUE,alternative='greater')$conf.int[1]*100,1)` - `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '1')),nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & SitesNumType == '>=2'))),n=c(nrow(kCeaResult%>%filter(SitesNumType == '1')),nrow(kCeaResult%>%filter(SitesNumType == '>=2'))),correct=TRUE,alternative='greater')$conf.int[2]*100,1)`%). The number of metastasis locations were `r ifelse(chisq.test(kCeaResult[kCeaResult$SitesNumType != '0',]$SitesNumType, kCeaResult[kCeaResult$SitesNumType != '0',]$Cea.Level)$p.value < 0.05,'statistically correlation','not statistically correlation')` with CEA distribution interval (p = `r a = chisq.test(kCeaResult[kCeaResult$SitesNumType != '0',]$SitesNumType, kCeaResult[kCeaResult$SitesNumType != '0',]$Cea.Level)$p.value;outputStand(a)`).
+
+
+`r table_number('ceaoverall', caption = 'The relationship between the distribution of CEA and tumor metastasis, histology of lung cancer, the number of metastatic sites and the range of metastasis')`
+
+```{r ceaoverall,echo=FALSE, warning=FALSE, message=FALSE}
+knitr::kable(ceaoverall)
+```
+
+
+### 3.6 Relationship between metastasis in lymph nodes and the distribution intervel of serum CEA
+
+`r table_number('cms.prop.data', caption = 'The frequency of tumor metastasis compared with the distribution of different serum CEA under different tumor size groups.')`
+```{r cms.prop.data, echo = FALSE, warning = FALSE, message = FALSE}
+library(flextable)
+cms.prop.data = cms.prop.data%>%
+  regulartable()%>%
+  bold(part = 'header')%>%
+  fontsize(size = 8, part = 'body')%>%
+  fontsize(size = 8, part = 'header')%>%
+  merge_v(j = c('tumor.size.classification'))%>%
+  theme_vanilla()%>%
+  bg(bg = 'gray90', part = 'header')%>%
+  align(j = ~tumor.size.classification+Cea.Level, align = 'center')%>%
+  set_header_labels(tumor.size.classification = 'Size of Tumor\n(cm)',
+                    Cea.Level = 'interval of CEA\n(ng/ml)',
+                    Metastatic = paste0('Lung Caner\n','with metastasis\n(n.sum,%)'),
+                    Unmetastatic = paste0('Lung Caner\n','without metastasis\n(n.sum,%)'))%>%
+  font(fontname = as.character(gdtools::sys_fonts()$family[393]), part = 'all')%>%  #getools::sys_fonts can get the fonts available in system.
+  autofit()
+knitr::knit_print(cms.prop.data)
+```
+
+We analyzed all the imaging findings of patients with lymph node metastasis (`r table_number('ceaoverall',display = "cite")`). And in `r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic'))` patients with metastasis, a total of `r nrow(kCeaResult[kCeaResult$lymph.node.metastasis == 'Positive' & kCeaResult$Pattern.Metastasis != 'distant',])` cases (`r nrow(kCeaResult[kCeaResult$lymph.node.metastasis == 'Positive' & kCeaResult$Pattern.Metastasis != 'distant',])`/`r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic'))`, `r round(nrow(kCeaResult[kCeaResult$lymph.node.metastasis == 'Positive' & kCeaResult$Pattern.Metastasis != 'distant',])*100/nrow(kCeaResult%>%filter(Metastasis == 'Metastatic')),1)`%) indicated the occurrence of mediastinal/hilar lymph node metastasis. Among these, `r nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional'))` patients (`r nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional'))`/`r nrow(kCeaResult[kCeaResult$lymph.node.metastasis == 'Positive' & kCeaResult$Pattern.Metastasis != 'distant',])`, `r round(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional'))*100/nrow(kCeaResult[kCeaResult$lymph.node.metastasis == 'Positive' & kCeaResult$Pattern.Metastasis != 'distant',]),1)`%) were regional mediastinal/hilar lymph node metastasis. `r round(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0'))*100/nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional')),1)`% of regional mediastinal/hilar lymph node metastasis (n = `r nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0'))`) had a CEA level <= 5ng/ml. In contrast, there were `r nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant'))` cases (`r nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant'))`/`r nrow(kCeaResult[kCeaResult$lymph.node.metastasis == 'Positive' & kCeaResult$Pattern.Metastasis != 'distant',])`, `r round(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant'))*100/nrow(kCeaResult[kCeaResult$lymph.node.metastasis == 'Positive' & kCeaResult$Pattern.Metastasis != 'distant',]),1)`%) of patients with mediastinal/hilar lymph node metastasis combined with distant metastasis, of which only `r nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))` cases (`r nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))`/`r nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant'))`, `r round(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))*100/nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant')),1)`%) which serum CEA level <=5.0ng/ml. The frequency of serum CEA level > 5.0ng/ml in patients with mediastinal/hilar lymph node metastasis combined with distant metastasis was `r ifelse(prop.test(x =c(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))),n =c(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant')),nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional'))),correct = TRUE, alternative = 'greater')$p.value < 0.05,'significantly higher','not significantly higher')` than that of regional mediastinal/hilar lymph nodes metastasis (`r round(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0'))*100/nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant')),1)`% vs. `r round(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))*100/nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional')),1)`%; p = `r a = prop.test(x =c(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))),n =c(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant')),nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional'))),correct = TRUE, alternative = 'greater')$p.value;outputStand(a)`, 95%CI:`r round(prop.test(x =c(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))),n =c(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant')),nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional'))),correct = TRUE, alternative = 'greater')$conf.int[1]*100,1)` - `r round(prop.test(x =c(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))),n =c(nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional+distant')),nrow(kCeaResult%>%filter(lymph.node.metastasis == 'Positive' & Pattern.Metastasis == 'regional'))),correct = TRUE, alternative = 'greater')$conf.int[2]*100,1)`%).
+
+### 3.7 Difference of distribution intervel of CEA between metastasis in lung parenchyma and out of lung parenchyma
+
+In a total of `r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic'))` patients with lung cancer metastasis, there were `r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional'))` patients which metastatic sites were limited to the lung parenchyma (including metastasis of the lungs or/and mediastinal/hilar lymph nodes), of which `r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0'))` cases (`r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0'))`/`r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional'))`, `r round(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0'))/nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional'))*100,1)`%, 95%CI:`r round(prop.test(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional')),correct=TRUE)$conf.int[1]*100,1)`-`r round(prop.test(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional')),correct=TRUE)$conf.int[2]*100,1)`%) had the serum CEA level in the <=5.0ng/ml interval; there were `r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant'))` cases distant metastasis not accompanied by metastasis of lung parenchyma, of which `r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0'))` cases (`r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0'))`/`r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant'))`, `r round(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0'))/nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant'))*100,1)`%,95%CI:`r round(prop.test(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant')),correct=TRUE)$conf.int[1]*100,1)`-`r round(prop.test(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant')),correct=TRUE)$conf.int[2]*100,1)`%) were CEA <=5.0ng/ml, and the distant lung metastasis accompanied by lung parenchyma metastasis in `r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant'))` cases, of which `r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))` cases (`r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))`/`r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant'))`,`r round(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))/nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant'))*100,1)`%, 95%CI:`r round(prop.test(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant')),correct=TRUE)$conf.int[1]*100,1)` - `r round(prop.test(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant')),correct=TRUE)$conf.int[2]*100,1)`%) Serum CEA <=5.0ng/ml.
+
+In the above three groups, the proportion of lung parenchyma metastasis patients which serum CEA <=5.0ng/ml (`r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0'))`/`r nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional'))`, `r round(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0'))*100/nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional')),1)`%) was `r ifelse(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant'))),correct=TRUE)$p.value < 0.05 & prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant'))),correct=TRUE)$p.value < 0.05,'higher','not higher')`  than the proportions of other two groups (p = `r a = prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant'))),correct=TRUE)$p.value;outputStand(a)`, 95%CI: `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant'))),correct=TRUE,alternative='greater')$conf.int[1]*100,1)`-`r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant'))),correct=TRUE,alternative='greater')$conf.int[2]*100,1)`%(vs. distant metastasis); `r a = prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant'))),correct=TRUE)$p.value;outputStand(a)`, 95%CI: `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant'))),correct=TRUE,alternative='greater')$conf.int[1]*100,1)`-`r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant'))),correct=TRUE,alternative='greater')$conf.int[2]*100,1)`%(vs. lung parenchyma metastasis combined distant metastasis)). And there was `r ifelse(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant'))),correct=TRUE)$p.value < 0.05,'statistically significant','no statistically significant')` difference between the proportions of different CEA distributions between distant metastasis group and the lung pulmonary metastasis combined distant metastasis group (p = `r a = prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant'))),correct=TRUE)$p.value;outputStand(a)`).
+
+At the same time, we found that there were `r ifelse(prop.test(x =c (nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0'))),correct=TRUE)$p.value > 0.05 & prop.test(x =c (nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE)$p.value > 0.05,' not statistically significant differences','statistically significant differences')` in the proportions of the above three groups in different CEA levels (p = `r a = prop.test(x =c (nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0'))),correct=TRUE)$p.value;outputStand(a)` (<=5.0ng/ml) and p = `r a = prop.test(x =c (nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE)$p.value;outputStand(a)` (>5.0ng/ml)).
+Among `r nrow(kCeaResult%>%filter(Cea.Level == '<=5.0' & Metastasis == 'Metastatic'))` patients which CEA was not more than 5.0ng/ml, the prevalence of lung parenchyma metastasis combined distant metastasis was `r ifelse(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0'))),correct=TRUE,alternative='less')$p.value < 0.05 & prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0'))),correct=TRUE,alternative='less')$p.value < 0.05,'lower','not lower')` than remaining two groups (p = `r a = prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0'))),correct=TRUE,alternative='less')$p.value;outputStand(a)` (95%CI: `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0'))),correct=TRUE,alternative='less')$conf.int[1]*100,1)` - `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0'))),correct=TRUE,alternative='less')$conf.int[2]*100,1)`%) and `r a = prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0'))),correct=TRUE,alternative='less')$p.value;outputStand(a)` (95%CI: `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0'))),correct=TRUE,alternative='less')$conf.int[1]*100,1)` - `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '<=5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '<=5.0'))),correct=TRUE,alternative='less')$conf.int[2]*100,1)`%), compared with lung parenchyma metastasis and distant metastasis, respectively). 
+Differently, among `r nrow(kCeaResult%>%filter(Cea.Level == '>5.0' & Metastasis == 'Metastatic'))` patients with metastasis which CEA >5.0ng/ml, the prevalences of distant metastaisis and lung parenchyma metastasis combined distant metastasis were `r ifelse(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE,alternative='greater')$p.value < 0.05 & prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE,alternative='greater')$p.value < 0.05,'both higher','not both higher')` than  lung parenchyma metastasis (p = `r a = prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE,alternative='greater')$p.value;outputStand(a)` (95%CI: `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE,alternative='greater')$conf.int[1]*100,1)` - `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE,alternative='greater')$conf.int[2]*100,1)`%) and `r a = prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE,alternative='greater')$p.value;outputStand(a)` (95%CI: `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE,alternative='greater')$conf.int[1]*100,1)` - `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE,alternative='greater')$conf.int[2]*100,1)`%), compared with distant metastasis and lung parenchyma metastasis combined distant metastasis, respectively), and the prevalence of distant metastasis was `r ifelse(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE)$p.value > 0.05,'no statistically','statistically')` significant higher than lung parenchyma metastasis combined distant metastasis (p = `r a = prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE)$p.value;outputStand(a)`, 95%CI: `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE,alternative = 'greater')$conf.int[1]*100,1)` - `r round(prop.test(x=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'distant' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Pattern.Metastasis == 'regional+distant' & Cea.Level == '>5.0'))),n=c(nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0')),nrow(kCeaResult%>%filter(Metastasis == 'Metastatic' & Cea.Level == '>5.0'))),correct=TRUE,alternative = 'greater')$conf.int[2]*100,1)`%). The results of chi-square test revealed that the distribution interval of serum CEA was statistically `r ifelse(chisq.test(kCeaResult[kCeaResult$Metastasis == 'Metastatic',]$Pattern, kCeaResult[kCeaResult$Metastasis == 'Metastatic',]$Cea.Level)$p.value > 0.05, 'not related','related')` to Whether the tumor metastasis sites contain distant metastasis (p = `r a = chisq.test(kCeaResult[kCeaResult$Metastasis == 'Metastatic',]$Pattern, kCeaResult[kCeaResult$Metastasis == 'Metastatic',]$Cea.Level)$p.value;outputStand(a)`).
+
+## 4. Discussion and Conclusion
+
+No literature supports the idea that CEA can be used to diagnose lung cancer[@grunnet_carcinoembryonic_2012]. In a large number of studies on CEA as prognostic factors of lung cancer, especially NSCLC, cutoff level for CEA was between 2.5 and 40ng/ml, mostly not more than 10ng/ml, and the majority between 5-7ng/ml[@grunnet_carcinoembryonic_2012]. There is no established standard for determining the cutoff value of CEA, therefore, in this study, we selected the reference high limit (5.0ng/ml) as the distinguishing criterion.
+
+Obviously, in our retrospective analysis, according to the aforementioned criteria for the determination of CEA, the distribution of CEA is significantly correlated with tumor metastasis, that is, if baseline CEA exceeds 5.0ng/ml, the likelihood of tumor metastasis is high. Considering the diversity of tumor metastases from the patients we have gathered, as shown in `r fig_number('metastasis.location', display = "cite")`, we believe that our statistical analysis concludes that the foregoing conclusions are of great universality.
+
+Because the incidence of NSCLC and SCLC in the population is inconsistent, we further analyzed the relationship between the distribution interval of CEA and histology. We did not find that the distribution of CEA and the probability of tumor metastasis differed in different histological types. However, in patients with NSCLC, if CEA exceeds 5.0ng/ml, the probability of tumor metastasis is much higher than that of the patients with CEA at normal level. It's worth noting that this is not the case in SCLC patients, even though there was tumor metastasis founded in nearly 80% SCLC patients which CEA exceeding 5.0ng/ml.
+
+At the same time, we found that adenocarcinoma patients were more susceptible to be found with tumor metastasis, and more likely to be detected the high level of CEA >5.0ng/ml. The observed result of significant association between high CEA serum levels and adenocarcinoma in comparison with other histological subtypes, such as squamous cell and SCLC, is consistent with other  studies[@arrieta_brain_2009;@cedres_serum_2011;@oliveira_relationship_2016].
+
+The size of the tumor was associated with the prognosis of the tumor[@rami-porta_revised_2009;@goldstraw_iaslc_2016;@rami-porta_iaslc_2015]. We evaluated the relationship between tumor size and tumor metastasis, and the distribution of CEA. With the increasing of tumor size, the probability of tumor metastasis did not increase, and there was no difference in the distribution range of CEA among the different tumor size groups. However, if the level of CEA is higher than the normal range, then the probability of tumor metastasis will increase significantly in different tumor size groups. Especially when the tumor size is over 3cm, if the CEA is greater than 5.0ng/ml, the likelihood of tumor metastasis was close to 90%.
+
+The distribution interval of CEA was statistically correlated with the number of sites of tumor metastasis. CEA of more than 80% of patients which tumor metastasis locations were more than one site located in >5.0ng/ml interval. This proporation was significantly higher than of which tumor metastasis locations were only one site. From the results of our study, if the metastasis of lung cancer was only located in mediastinum/hilar lymph nodes, the serum CEA may be located in normal range, but if there was combined with other distant metastases, such as bone, brain, and pleural metastasis, the level of serum CEA may be higher than the normal reference range. Futhermore, if metastasis occurs only in the pulmonary parenchyma, including pulmonary parenchyma and mediastinal/hilar lymph node metastasis, more than 90% of the patients have a serum CEA not exceeding 5.0ng/ml, this corresponds to the fact that if the patient has been found distant metastasis, whether it is a simple distant metastasis, or the pulmonary parenchyma and/or mediastinal/hilar lymph nodes combined with distant metastasis, the level of serum CEA in these patients may be more than 5.0ng/ml.Previous studies have confirmed that high levels of serum CEA or cerebrospinal fluid CEA are closely related to brain metastasis in lung cancer because of the capacity of CEA to penetrate the blood-brain barrier, behaving in a similar manner to Igs due to their homologous molecular weights[@reiber_sensitive_1986;@reiber_dynamics_2001;@arrieta_brain_2009;@noris-garcia_brain_2004;@li_serum_2016]. Similarly, there is also literature indicating that the expression of serum CEA is associated with bone metastasis in non-small cell lung cancer[@zhang_important_2017]. Our data are consistent with these findings.
+
+In many neoplasms, high serum CEA levels have been previously described as a predictor of residual disease or tumor relapse in patients without normal-range serum levels after surgery[@macdonald_carcinoembryonic_1999].The level of serum CEA expression and the trend of its changes in the treatment process have been validated by several studies on the clinical value of evaluating the efficacy and prognosis of NSCLC[@arrieta_usefulness_2013;@ardizzoni_andrea_decline_2006], high levels of tumor markers at baseline, such as CEA and CA-125 and so on, are correlated with worse survival in stage III-IV NSCLC patients[@cedres_serum_2011]. However, in the relevant guidelines for NSCLC, serum CEA was not included as an important laboratory test item[@reck_metastatic_2014]. We believe that the clinical value of serum CEA in patients with lung cancer remains to be improved.
+
+From our conclusion, we think that the expression level of baseline serum CEA is of important clinical significance for clinicians to evaluate the tumor metastasis of newly diagnosed lung cancer in a rough way, and clinicians are able to assess the extent of tumor metastasis with the level of serum CEA when they are diagnosed, and to make a simple assessment of the general situation of tumor metastasis. Such an assessment could, to some extent, guide clinicians to use other tests reasonably.
+
+We will include more eligible cases in subsequent studies, and we hope to find more evidence to confirm the presence of tumor metastasis, especially lymph node metastasis, such as the results of lymph node dissection or pathological examination of the tissues involved. In this study, we refer to the 95% confidence interval to some extent to make up for the potential impact of the lack of cases.
+
+In conclusion, our study shows that the level of CEA of newly diagnosed lung cancer patients was correlated with the occurance of tumor metastasis, and has correlation with the number of metastasis site and the location of metastasis. If there is more than 5.0 of the serum CEA in a newly diagnosed lung cancer patient, it is necessary to pay close attention to the possibility of metastasis, and the presence of one or more distant transfer sites in the patient. Of course, it is not advocated to evaluate tumor metastasis independently with the level of CEA. According to our analysis, the association of CEA level with histology and tumor size is valuable.
+
+## Abbreviations
+CEA: Carcinoembryonic antigen; 
+PET: positron emission tomography; 
+CT: computed tomography;
+MRI: magnetic resonance imaging; 
+NSCLC: Non-small cell lung cancer; 
+SCLC: small cell lung cancer; 
+
+## Authors' contributions
+Si jia Wang and jie ting Wang contributed to the conception and design of the study proposal. Si jia Wang and li liang Sun
+cleared up the data and performed data analysis. Si jia Wang wrote the
+initial version of the manuscript. Jie ting Wang revised the manuscript and assisted
+with formatting and language editing. All authors read and approved the fnal
+manuscript.
+
+## Author details
+1 Department of Clinical Laboratory, Dazhou Central Hospital, Dazhou city, Sichuan Province, 635000, China. 
+2 Department of Internal medicine, Dazhou Central Hospital, Dazhou city, Sichuan Province, 635000, China. 
+
+## Acknowledgements
+The authors assume full responsibility for data analyses and interpretation.
+
+## Competing interests
+The authors declare that they have no competing interests.
+
+## Availability of data and materials
+All the data supporting the conclusions of this article are included in the article.
+
+## Consent for publication
+Not applicable.
+
+## Ethics approval and consent to participate
+Not applicable.
+
+## Funding
+Not applicable.
+
+```{r Cohort.diagram, fig.width= 7, fig.height= 3.5, echo=FALSE, warning=FALSE, message=FALSE}
+grViz("
+digraph a_nice_graph {
+    # node definitions with substituted label text
+    node [fontname = Helvetica, shape = rectangle]
+    T[label = '@@5']
+    R[label = '@@1']
+    a[label = '@@2-1']
+    b[label = '@@2-2']
+    c[label = '@@2-3']
+    d[label = '@@6-1']
+    e[label = '@@6-2']
+    f[label = '@@6-3']
+
+    subgraph cluster0 { label = 'Dropout'
+    node [fontcolor = Gray90, style = filled, fillcolor = Gray50, fixedsize = true, width = 3]
+    edge [arrowhead = none, arrowtail = none, alpha = 1,style=dotted]
+    '@@3'->'@@4'
+    }
+      
+    # edge definitions with the node IDs
+    T -> R
+    T -> {'@@3'}            [lhead = cluster0,style=dotted,headtooltip = About]
+    R -> {a b c}
+    a -> d
+    b -> e
+    c -> f
+    }
+      
+    [1]: paste0(nrow(kCeaResult),' pts\\n','definite histological type\\n','+\\n','baseline CEA level')
+    [2]: paste0(samplenNum$n,' pts\\n',samplenNum$Source.of.histological.specimens)
+    [3]: '18 pts\\n without histological type'
+    [4]: '7 pts\\n without baseline CEA level'
+    [5]: '238 pts\\n Lung Cancer'
+    [6]: paste0(samplenNum2$acture,' pts\\n','with histological subtype\\n',samplenNum$Source.of.histological.specimens)
+    ")
+```
+
+`r fig_number('Cohort.diagram', caption = 'Cohort diagram: Lung cancer patients according to the stage at cancer diagnosis, the histology and CEA results at diagnosis.')`
+
+-------------
+
+
+![](Rplot02.png)
+
+`r fig_number('metastasis.location', caption = 'Top 10 tumor mastasis locations with highest frequency, and the corresponding distribution characteristics')`
+> _**distant(multiple)**: multiple distant metastasis locations in one patient; **distant(single)**: patient with only one distant metastasis location; **regional(single)**: metastasis appeared only in the hilar/mediastinal lymph nodes or lung parenchyma; **regional+distant(multiple)**: metastasis occurred in the pulmonary hilar/mediastinum lymph node or in the lung parenchyma and at least one distant metastasis at the same time_
+
+-----------
+![](Rplot01.png)
+
+`r fig_number('Group.Cea.plot', caption = 'Frequency of tumor metastasis in different histological types at different CEA levels')`
+
+-----------
+![](Rplot03.png)
+
+`r fig_number('Group.Cea.plot2', caption = 'Frequency of tumor metastasis in different histological subtypes at different CEA levels')`
+
+## Disclosure of conflict of interest
+
+None.
+
+### References 
